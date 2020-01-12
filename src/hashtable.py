@@ -19,9 +19,10 @@ class HashTable:
 
     def __init__(self, capacity):
         self.capacity = capacity  # Number of buckets in the hash table
+        self.orig_capacity = capacity
         self.storage = [None] * capacity
 
-    def _hash(self, key):
+    def __hash_djb2(self, key):
         '''
         Hash an arbitrary key and return an integer.
 
@@ -29,23 +30,29 @@ class HashTable:
         '''
         return hash(key) % self.capacity
 
-    def _hash_djb2(self, key):
+    def __hash_djb2(self, key):
         '''
         Hash an arbitrary key using DJB2 hash
 
         OPTIONAL STRETCH: Research and implement DJB2
-        '''
-        pass
 
-    def _hash_mod(self, key):
+        Reference: http://www.cse.yorku.ca/~oz/hash.html
+        '''
+        hash = 5381
+        for char in key:
+            hash = ((hash << 5) + hash) + ord(char)
+
+        return hash
+
+    def __hash_mod(self, key):
         '''
         Take an arbitrary key and return a valid integer index
         within the storage capacity of the hash table.
         '''
-        return self._hash(key) % self.capacity
+        return self.__hash_djb2(key) % self.capacity
 
     def insert(self, key, value):
-        index = self._hash(key)
+        index = self.__hash_mod(key)
         lp = LinkedPair(key, value)
 
         # if there is collision,
@@ -56,7 +63,7 @@ class HashTable:
         self.storage[index] = lp
 
     def remove(self, key):
-        index = self._hash(key)
+        index = self.__hash_mod(key)
 
         # if hash table index has values
         if self.storage[index]:
@@ -76,7 +83,7 @@ class HashTable:
             print("This value doesn't exist in the hash table.")
 
     def retrieve(self, key):
-        index = self._hash(key)
+        index = self.__hash_mod(key)
 
         # if hash table index has values,
         if self.storage[index]:
