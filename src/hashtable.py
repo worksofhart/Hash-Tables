@@ -1,21 +1,25 @@
 # '''
 # Linked List hash table key/value pair
 # '''
+import hashlib
+
+
 class LinkedPair:
     def __init__(self, key, value):
         self.key = key
         self.value = value
         self.next = None
 
+
 class HashTable:
     '''
     A hash table that with `capacity` buckets
     that accepts string keys
     '''
+
     def __init__(self, capacity):
         self.capacity = capacity  # Number of buckets in the hash table
         self.storage = [None] * capacity
-
 
     def _hash(self, key):
         '''
@@ -23,8 +27,7 @@ class HashTable:
 
         You may replace the Python hash with DJB2 as a stretch goal.
         '''
-        return hash(key)
-
+        return hash(key) % self.capacity
 
     def _hash_djb2(self, key):
         '''
@@ -34,7 +37,6 @@ class HashTable:
         '''
         pass
 
-
     def _hash_mod(self, key):
         '''
         Take an arbitrary key and return a valid integer index
@@ -42,50 +44,68 @@ class HashTable:
         '''
         return self._hash(key) % self.capacity
 
-
     def insert(self, key, value):
-        '''
-        Store the value with the given key.
+        index = self._hash(key)
+        lp = LinkedPair(key, value)
 
-        Hash collisions should be handled with Linked List Chaining.
+        # if there is collision,
+        if self.storage[index]:
+            # store the value of the colliding key in the next linked list node
+            lp.next = self.storage[index]
 
-        Fill this in.
-        '''
-        pass
-
-
+        self.storage[index] = lp
 
     def remove(self, key):
-        '''
-        Remove the value stored with the given key.
+        index = self._hash(key)
 
-        Print a warning if the key is not found.
-
-        Fill this in.
-        '''
-        pass
-
+        # if hash table index has values
+        if self.storage[index]:
+            lp = self.storage[index]
+            # and you found the key,
+            if lp.key == key:
+                # replace that value with the next key's value
+                self.storage[index] = lp.next
+            else:
+                # else loop through linked list until you find the key
+                while lp.next != None:
+                    if lp.next.key == key:
+                        lp.next = lp.next.next
+                    else:
+                        lp = lp.next
+        else:
+            print("This value doesn't exist in the hash table.")
 
     def retrieve(self, key):
-        '''
-        Retrieve the value stored with the given key.
+        index = self._hash(key)
 
-        Returns None if the key is not found.
-
-        Fill this in.
-        '''
-        pass
-
+        # if hash table index has values,
+        if self.storage[index]:
+            # loop through linked list until key is found
+            lp = self.storage[index]
+            if lp.key == key:
+                return lp.value
+            else:
+                # else loop through linked list until you find the key
+                while lp.next != None:
+                    if lp.next.key == key:
+                        return lp.next.value
+                    else:
+                        lp = lp.next
+        else:
+            # return None if key is not found
+            return None
 
     def resize(self):
-        '''
-        Doubles the capacity of the hash table and
-        rehash all key/value pairs.
+        # double hash table size
+        ht = HashTable(2 * self.capacity)
 
-        Fill this in.
-        '''
-        pass
+        # copy old hash table into new one
+        for item in self.storage:
+            while item != None:
+                ht.insert(item.key, item.value)
+                item = item.next
 
+        return ht
 
 
 if __name__ == "__main__":
