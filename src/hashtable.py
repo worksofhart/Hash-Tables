@@ -67,7 +67,7 @@ class HashTable:
                 self.storage[index] = lp.next
             else:
                 # else loop through linked list until you find the key
-                while lp.next != None:
+                while lp.next is not None:
                     if lp.next.key == key:
                         lp.next = lp.next.next
                     else:
@@ -86,7 +86,7 @@ class HashTable:
                 return lp.value
             else:
                 # else loop through linked list until you find the key
-                while lp.next != None:
+                while lp.next is not None:
                     if lp.next.key == key:
                         return lp.next.value
                     else:
@@ -101,11 +101,14 @@ class HashTable:
 
         # copy old hash table into new one
         for item in self.storage:
-            while item != None:
-                ht.insert(item.key, item.value)
-                item = item.next
+            cur_item = item
+            while cur_item is not None:
+                ht.insert(cur_item.key, cur_item.value)
+                cur_item = cur_item.next
 
-        return ht
+        # replace old hash table with the new
+        self.capacity *= 2
+        self.storage = ht.storage
 
 
 if __name__ == "__main__":
