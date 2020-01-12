@@ -19,8 +19,10 @@ class HashTable:
 
     def __init__(self, capacity):
         self.capacity = capacity  # Number of buckets in the hash table
+        # Used for limiting hash table shrinking to never go below the original size
         self.orig_capacity = capacity
         self.storage = [None] * capacity
+        self.num_items = 0  # For calculating load factor, which is num_items / capacity
 
     def __hash_djb2(self, key):
         '''
@@ -51,36 +53,58 @@ class HashTable:
         '''
         return self.__hash_djb2(key) % self.capacity
 
-    def insert(self, key, value):
-        index = self.__hash_mod(key)
-        lp = LinkedPair(key, value)
+    def load_factor(self):
+        return self.num_items / self.capacity
 
-        # if there is collision,
+    def insert(self, key, value):
+
+        # If key exists in hash table, remove it so we can replace with updated value
+        if self.retrieve(key):
+            self.remove(key)
+
+        index = self.__hash_mod(key)
+        item = LinkedPair(key, value)
+
+        # if there is a collision,
         if self.storage[index]:
             # store the value of the colliding key in the next linked list node
-            lp.next = self.storage[index]
+            item.next = self.storage[index]
 
-        self.storage[index] = lp
+        self.storage[index] = item
+
+        # Resize hash table if high load factor
+        self.num_items += 1
+        if self.load_factor() > 0.7:
+            self.resize()
 
     def remove(self, key):
+        if self.retrieve(key) is None:
+            return
+
         index = self.__hash_mod(key)
 
         # if hash table index has values
         if self.storage[index]:
-            lp = self.storage[index]
+            item = self.storage[index]
             # and you found the key,
-            if lp.key == key:
+            if item.key == key:
                 # replace that value with the next key's value
-                self.storage[index] = lp.next
+                self.storage[index] = item.next
+                self.num_items -= 1
             else:
                 # else loop through linked list until you find the key
-                while lp.next is not None:
-                    if lp.next.key == key:
-                        lp.next = lp.next.next
+                while item.next is not None:
+                    if item.next.key == key:
+                        # set pointer to skip over item, effectively removing it
+                        item.next = item.next.next
+                        self.num_items -= 1
+                        break
                     else:
-                        lp = lp.next
-        else:
-            print("This value doesn't exist in the hash table.")
+                        item = item.next
+
+        # Shrink hash table if low load factor and hash table is larger than its original size
+        if self.load_factor() < 0.2 and self.capacity > self.orig_capacity:
+            self.resize()
 
     def retrieve(self, key):
         index = self.__hash_mod(key)
@@ -88,38 +112,53 @@ class HashTable:
         # if hash table index has values,
         if self.storage[index]:
             # loop through linked list until key is found
-            lp = self.storage[index]
-            if lp.key == key:
-                return lp.value
+            item = self.storage[index]
+            if item.key == key:
+                return item.value
             else:
-                # else loop through linked list until you find the key
-                while lp.next is not None:
-                    if lp.next.key == key:
-                        return lp.next.value
+                while item.next is not None:
+                    if item.next.key == key:
+                        return item.next.value
                     else:
-                        lp = lp.next
-        else:
-            # return None if key is not found
-            return None
+                        item = item.next
+
+        # return None if key is not found
+        return None
 
     def resize(self):
-        # double hash table size
-        ht = HashTable(2 * self.capacity)
+        new_capacity = self.capacity
+        # double hash table size if high load factor
+        if self.load_factor() > 0.7:
+            new_capacity *= 2
+            # print("Growing to ", new_capacity)
+        # or halve if low load factor and larger than original size
+        elif self.load_factor() < 0.2 and self.capacity > self.orig_capacity:
+            new_capacity //= 2
+            # print("Shrinking to ", new_capacity)
+
+        # if neither enlarging or shrinking, return with no other action
+        if new_capacity == self.capacity:
+            return
+
+        # create new hash table
+        ht = HashTable(new_capacity)
 
         # copy old hash table into new one
-        for item in self.storage:
-            cur_item = item
-            while cur_item is not None:
-                ht.insert(cur_item.key, cur_item.value)
-                cur_item = cur_item.next
+        for node in self.storage:
+            cur_node = node
+            while cur_node is not None:
+                ht.insert(cur_node.key, cur_node.value)
+                cur_node = cur_node.next
 
         # replace old hash table with the new
-        self.capacity *= 2
+        self.capacity = new_capacity
         self.storage = ht.storage
 
 
 if __name__ == "__main__":
     ht = HashTable(2)
+
+    old_capacity = len(ht.storage)
 
     ht.insert("line_1", "Tiny hash table")
     ht.insert("line_2", "Filled beyond capacity")
@@ -133,8 +172,6 @@ if __name__ == "__main__":
     print(ht.retrieve("line_3"))
 
     # Test resizing
-    old_capacity = len(ht.storage)
-    ht.resize()
     new_capacity = len(ht.storage)
 
     print(f"\nResized from {old_capacity} to {new_capacity}.\n")
@@ -143,5 +180,3 @@ if __name__ == "__main__":
     print(ht.retrieve("line_1"))
     print(ht.retrieve("line_2"))
     print(ht.retrieve("line_3"))
-
-    print("")
